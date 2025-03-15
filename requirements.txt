@@ -1,6 +1,6 @@
 streamlit
+numpy<2
 matplotlib==3.7.1
-numpy
 pandas
 scipy
 openpyxl
