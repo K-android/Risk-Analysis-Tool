@@ -60,7 +60,7 @@ def save_results(results_df):
     return output
 
 # Streamlit UI Setup
-st.title("🏗️ Construction Risk & Cost Estimator")
+st.title("Construction Risk & Cost Estimator")
 st.markdown("---")
 
 # Sidebar for Inputs
