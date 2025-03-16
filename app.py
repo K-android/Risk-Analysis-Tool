@@ -24,7 +24,7 @@ def fetch_material_prices():
         st.warning("⚠️ Failed to fetch real-time data. Using default values.")
         return {"cement": 500, "steel": 60000, "sand": 1200, "bricks": 8}
 
-def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk, num_simulations=10000):
+def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk, interest_rate, equipment_cost, overhead_cost, num_simulations=10000):
     """
     Runs a Monte Carlo simulation to estimate construction costs using Triangular Distribution for better accuracy.
     """
@@ -32,17 +32,20 @@ def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, o
     labor_costs = np.random.triangular(labor_mean - labor_std, labor_mean, labor_mean + labor_std, num_simulations)
     other_expenses = np.random.triangular(other_mean - other_std, other_mean, other_mean + other_std, num_simulations)
     
-    total_costs = material_costs + labor_costs + other_expenses
+    total_costs = material_costs + labor_costs + other_expenses + equipment_cost + overhead_cost
     
-    # Adjusting for inflation and delay risks
+    # Adjusting for inflation, delay risks, and interest rates
     inflation_factor = 1 + (inflation_rate / 100)
     delay_factor = 1 + (delay_risk / 100)
-    total_costs *= (inflation_factor * delay_factor)
+    interest_factor = 1 + (interest_rate / 100)
+    total_costs *= (inflation_factor * delay_factor * interest_factor)
     
     results_df = pd.DataFrame({
         "Material Costs": material_costs,
         "Labor Costs": labor_costs,
         "Other Expenses": other_expenses,
+        "Equipment Costs": equipment_cost,
+        "Overhead Costs": overhead_cost,
         "Total Costs": total_costs
     })
     
@@ -60,7 +63,7 @@ def save_results(results_df):
     return output
 
 # Streamlit UI Setup
-st.title("Construction Risk & Cost Estimator")
+st.title(" ._. Construction Risk & Cost Estimator")
 st.markdown("---")
 
 # Sidebar for Inputs
@@ -78,42 +81,30 @@ labor_mean = st.sidebar.slider("Labor Mean Cost (₹)", 20000, 200000, 50000)
 labor_std = st.sidebar.slider("Labor Std Dev (₹)", 2000, 20000, 5000)
 other_mean = st.sidebar.slider("Other Expenses Mean Cost (₹)", 10000, 100000, 20000)
 other_std = st.sidebar.slider("Other Expenses Std Dev (₹)", 1000, 10000, 2000)
+equipment_cost = st.sidebar.slider("Equipment Cost (₹)", 5000, 100000, 20000)
+overhead_cost = st.sidebar.slider("Overhead Cost (₹)", 10000, 200000, 50000)
 inflation_rate = st.sidebar.slider("Expected Inflation Rate (%)", 0, 20, 5)
 delay_risk = st.sidebar.slider("Expected Delay Impact (%)", 0, 30, 10)
+interest_rate = st.sidebar.slider("Loan Interest Rate (%)", 0, 15, 5)
 
 st.sidebar.markdown("---")
 run_simulation = st.sidebar.button("▶️ Run Simulation")
 
 if run_simulation:
     results_df, total_costs = monte_carlo_simulation(
-        material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk
+        material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk, interest_rate, equipment_cost, overhead_cost
     )
     
-    avg_cost = np.mean(total_costs)
-    cost_90 = np.percentile(total_costs, 90)
-    cost_99 = np.percentile(total_costs, 99)
+    st.subheader("📊 Cost Distribution")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    sns.histplot(total_costs, bins=50, kde=True, color='blue', alpha=0.7)
+    ax.set_xlabel("Total Project Cost (₹)")
+    ax.set_ylabel("Frequency")
+    ax.set_title("Monte Carlo Simulation for Cost Estimation")
+    st.pyplot(fig)
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(label="📊 Average Project Cost", value=f"₹{avg_cost:,.2f}")
-        st.metric(label="🔶 90% of Projects Cost Below", value=f"₹{cost_90:,.2f}")
-        st.metric(label="🔴 99% of Projects Cost Below", value=f"₹{cost_99:,.2f}")
-    
-    with col2:
-        fig, ax = plt.subplots(figsize=(10, 5))
-        sns.histplot(total_costs, bins=50, kde=True, color='blue', alpha=0.7)
-        ax.axvline(avg_cost, color='red', linestyle='dashed', label="Median Cost")
-        ax.axvline(cost_90, color='orange', linestyle='dashed', label="90% Risk Cost")
-        ax.set_xlabel("Total Project Cost (₹)")
-        ax.set_ylabel("Frequency")
-        ax.set_title("Monte Carlo Simulation for Construction Cost Estimation")
-        ax.legend()
-        st.pyplot(fig)
-    
-    st.markdown("---")
-    st.subheader("📌 Sensitivity Analysis")
-    corr = results_df.corr()["Total Costs"].drop("Total Costs")
-    st.bar_chart(corr)
+    st.subheader("📈 Cost Breakdown")
+    st.bar_chart(results_df.mean())
     
     st.download_button(
         label="📥 Download Simulation Results", 
@@ -121,4 +112,3 @@ if run_simulation:
         file_name="simulation_results.xlsx", 
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
