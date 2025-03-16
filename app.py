@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 from io import BytesIO
 
-def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, other_mean, other_std, num_simulations=10000):
+def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk, num_simulations=10000):
     """
     Runs a Monte Carlo simulation to estimate construction costs using Triangular Distribution for better accuracy.
     """
@@ -14,6 +14,11 @@ def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, o
     other_expenses = np.random.triangular(other_mean - other_std, other_mean, other_mean + other_std, num_simulations)
     
     total_costs = material_costs + labor_costs + other_expenses
+    
+    # Adjusting for inflation and delay risks
+    inflation_factor = 1 + (inflation_rate / 100)
+    delay_factor = 1 + (delay_risk / 100)
+    total_costs *= (inflation_factor * delay_factor)
     
     results_df = pd.DataFrame({
         "Material Costs": material_costs,
@@ -32,6 +37,13 @@ def save_results(results_df):
     output.seek(0)
     return output
 
+def load_past_reports():
+    """ Loads past construction reports from a CSV file """
+    try:
+        return pd.read_csv("past_reports.csv")
+    except FileNotFoundError:
+        return pd.DataFrame(columns=["Project Name", "Total Cost", "Completion Time", "Major Risks"])
+
 # Streamlit UI Setup
 st.title("Construction Risk & Cost Estimator")
 st.sidebar.header("Input Parameters")
@@ -42,10 +54,12 @@ labor_mean = st.sidebar.slider("Labor Mean Cost (₹)", 20000, 200000, 50000)
 labor_std = st.sidebar.slider("Labor Std Dev (₹)", 2000, 20000, 5000)
 other_mean = st.sidebar.slider("Other Expenses Mean Cost (₹)", 10000, 100000, 20000)
 other_std = st.sidebar.slider("Other Expenses Std Dev (₹)", 1000, 10000, 2000)
+inflation_rate = st.sidebar.slider("Expected Inflation Rate (%)", 0, 20, 5)
+delay_risk = st.sidebar.slider("Expected Delay Impact (%)", 0, 30, 10)
 
 if st.sidebar.button("Run Simulation"):
     results_df, total_costs = monte_carlo_simulation(
-        material_mean, material_std, labor_mean, labor_std, other_mean, other_std
+        material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk
     )
     
     avg_cost = np.mean(total_costs)
@@ -79,4 +93,18 @@ if st.sidebar.button("Run Simulation"):
         file_name="simulation_results.xlsx", 
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+# Past Construction Reports Page
+st.sidebar.header("View Past Reports")
+if st.sidebar.button("Load Past Reports"):
+    past_reports = load_past_reports()
+    st.write("### Past Construction Reports")
+    st.dataframe(past_reports)
+    
+    if st.sidebar.button("Export Past Reports"):
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            past_reports.to_excel(writer, index=False)
+        output.seek(0)
+        st.download_button("Download Past Reports", data=output, file_name="past_reports.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
