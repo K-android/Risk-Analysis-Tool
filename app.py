@@ -21,7 +21,7 @@ def fetch_material_prices():
             "bricks": data.get("bricks", 8)
         }
     except Exception as e:
-        st.warning(⚠️ Failed to fetch real-time data. Using default values.")
+        st.warning("⚠️ Failed to fetch real-time data. Using default values.")
         return {"cement": 500, "steel": 60000, "sand": 1200, "bricks": 8}
 
 def fetch_labor_rates():
