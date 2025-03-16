@@ -64,13 +64,12 @@ def fetch_legal_risks():
         st.warning("⚠️ Failed to fetch legal risk data.")
         return "No legal risks detected."
 
-# Function to compare scenarios
-def compare_scenarios(scenario1, scenario2):
-    comparison = pd.DataFrame({
-        "Scenario 1": scenario1.mean(),
-        "Scenario 2": scenario2.mean()
-    })
-    return comparison
+def save_results(results_df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        results_df.to_excel(writer, index=False)
+    output.seek(0)
+    return output
 
 # Fetch real-time data
 real_time_prices = fetch_material_prices()
@@ -119,28 +118,22 @@ st.sidebar.markdown("---")
 run_simulation = st.sidebar.button("▶️ Run Simulation")
 
 if run_simulation:
-    results_df_1, total_costs_1 = monte_carlo_simulation(material_cost, 10000, labor_cost, 5000, other_cost, 2000, inflation_rate, delay_risk, interest_rate, equipment_cost, overhead_cost)
+    results_df, total_costs = monte_carlo_simulation(material_cost, 10000, labor_cost, 5000, other_cost, 2000, inflation_rate, delay_risk, interest_rate, equipment_cost, overhead_cost)
     
     st.subheader("📊 Cost Distribution")
     fig, ax = plt.subplots(figsize=(10, 5))
-    sns.histplot(total_costs_1, bins=50, kde=True, color='blue', alpha=0.7)
+    sns.histplot(total_costs, bins=50, kde=True, color='blue', alpha=0.7)
     ax.set_xlabel("Total Project Cost (₹)")
     ax.set_ylabel("Frequency")
     ax.set_title("Monte Carlo Simulation for Cost Estimation")
     st.pyplot(fig)
     
     st.subheader("📈 Cost Breakdown")
-    st.bar_chart(results_df_1.mean())
-    
-    if st.sidebar.button("Compare Another Scenario"):
-        results_df_2, total_costs_2 = monte_carlo_simulation(material_cost, 10000, labor_cost, 5000, other_cost, 2000, inflation_rate, delay_risk, interest_rate, equipment_cost, overhead_cost)
-        comparison = compare_scenarios(results_df_1, results_df_2)
-        st.subheader("📊 Scenario Comparison")
-        st.dataframe(comparison)
+    st.bar_chart(results_df.mean())
     
     st.download_button(
         label="📥 Download Simulation Results", 
-        data=save_results(results_df_1), 
+        data=save_results(results_df), 
         file_name="simulation_results.xlsx", 
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
