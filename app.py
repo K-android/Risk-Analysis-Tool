@@ -71,6 +71,30 @@ def save_results(results_df):
     output.seek(0)
     return output
 
+# Monte Carlo Simulation Function
+def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk, interest_rate, equipment_cost, overhead_cost, num_simulations=10000):
+    material_costs = np.random.triangular(material_mean - material_std, material_mean, material_mean + material_std, num_simulations)
+    labor_costs = np.random.triangular(labor_mean - labor_std, labor_mean, labor_mean + labor_std, num_simulations)
+    other_expenses = np.random.triangular(other_mean - other_std, other_mean, other_mean + other_std, num_simulations)
+    
+    total_costs = material_costs + labor_costs + other_expenses + equipment_cost + overhead_cost
+    
+    inflation_factor = 1 + (inflation_rate / 100)
+    delay_factor = 1 + (delay_risk / 100)
+    interest_factor = 1 + (interest_rate / 100)
+    total_costs *= (inflation_factor * delay_factor * interest_factor)
+    
+    results_df = pd.DataFrame({
+        "Material Costs": material_costs,
+        "Labor Costs": labor_costs,
+        "Other Expenses": other_expenses,
+        "Equipment Costs": equipment_cost,
+        "Overhead Costs": overhead_cost,
+        "Total Costs": total_costs
+    })
+    
+    return results_df, total_costs
+
 # Fetch real-time data
 real_time_prices = fetch_material_prices()
 real_time_labor = fetch_labor_rates()
