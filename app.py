@@ -102,7 +102,7 @@ regulatory_updates = fetch_regulatory_data()
 weather_forecast = fetch_weather_forecast()
 legal_risks = fetch_legal_risks()
 
-st.title("🏗️ Construction Risk & Cost Estimator")
+st.title("Construction Risk & Cost Estimator")
 st.markdown("---")
 
 # Display Real-Time Data in a Separate Section
@@ -110,25 +110,25 @@ st.subheader("🌍 Real-Time Market & Regulatory Data")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.write("### 📌 Material Costs")
+    st.write("###  Material Costs")
     st.write(f"🧱 Cement: ₹{real_time_prices['cement']} per bag")
     st.write(f"🔩 Steel: ₹{real_time_prices['steel']} per ton")
     st.write(f"🏖️ Sand: ₹{real_time_prices['sand']} per cubic meter")
     st.write(f"🧱 Bricks: ₹{real_time_prices['bricks']} per unit")
 
 with col2:
-    st.write("### 👷 Labor Cost & Weather Forecast")
+    st.write("###  Labor Cost & Weather Forecast")
     st.write(f"👷 Labor Cost: ₹{real_time_labor} per hour")
     st.write(f"🌤️ Weather Forecast: {weather_forecast}")
 
 with col3:
-    st.write("### ⚖️ Regulations & Legal Risks")
+    st.write("###  Regulations & Legal Risks")
     st.write(f"📜 Regulatory Updates: {regulatory_updates}")
     st.write(f"⚠️ Legal Risk Analysis: {legal_risks}")
 
 st.markdown("---")
 
-st.sidebar.header("🔧 Input Parameters")
+st.sidebar.header("Input Parameters")
 material_cost = st.sidebar.number_input("Material Cost (₹)", value=real_time_prices['cement']*100)
 labor_cost = st.sidebar.number_input("Labor Cost (₹)", value=real_time_labor*1000)
 other_cost = st.sidebar.number_input("Other Expenses (₹)", value=50000)
