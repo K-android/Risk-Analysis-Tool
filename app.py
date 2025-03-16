@@ -1,8 +1,10 @@
+import streamlit as st
+st.set_page_config(page_title="Construction Risk & Cost Estimator", layout="wide")
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import streamlit as st
 import requests
 from io import BytesIO
 
@@ -58,7 +60,6 @@ def save_results(results_df):
     return output
 
 # Streamlit UI Setup
-st.set_page_config(page_title="Construction Risk & Cost Estimator", layout="wide")
 st.title("🏗️ Construction Risk & Cost Estimator")
 st.markdown("---")
 
@@ -120,3 +121,4 @@ if run_simulation:
         file_name="simulation_results.xlsx", 
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
