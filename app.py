@@ -54,6 +54,16 @@ def fetch_regulatory_data():
         st.warning("⚠️ Failed to fetch regulatory data.")
         return "No recent updates."
 
+def fetch_legal_risks():
+    api_url = "https://api.example.com/legal-risk-analysis"  # Replace with actual API
+    try:
+        response = requests.get(api_url)
+        data = response.json()
+        return data.get("legal_risks", "No legal risks detected.")
+    except Exception as e:
+        st.warning("⚠️ Failed to fetch legal risk data.")
+        return "No legal risks detected."
+
 def ai_cost_estimation(material_cost, labor_cost, other_cost, inflation_rate, delay_risk):
     risk_factor = 1 + (inflation_rate / 100) + (delay_risk / 100)
     return (material_cost + labor_cost + other_cost) * risk_factor
@@ -85,6 +95,7 @@ real_time_prices = fetch_material_prices()
 real_time_labor = fetch_labor_rates()
 regulatory_updates = fetch_regulatory_data()
 weather_forecast = fetch_weather_forecast()
+legal_risks = fetch_legal_risks()
 
 def save_results(results_df):
     output = BytesIO()
@@ -109,6 +120,9 @@ st.sidebar.write(weather_forecast)
 
 st.sidebar.subheader("📜 Regulatory Updates")
 st.sidebar.write(regulatory_updates)
+
+st.sidebar.subheader("⚖️ Legal Risk Analysis")
+st.sidebar.write(legal_risks)
 
 material_cost = st.sidebar.number_input("Material Cost (₹)", value=real_time_prices['cement']*100)
 labor_cost = st.sidebar.number_input("Labor Cost (₹)", value=real_time_labor*1000)
