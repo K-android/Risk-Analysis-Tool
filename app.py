@@ -3,7 +3,24 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import streamlit as st
+import requests
 from io import BytesIO
+
+# Function to fetch real-time construction material costs
+def fetch_material_prices():
+    api_url = "https://api.example.com/construction-costs"  # Replace with actual API
+    try:
+        response = requests.get(api_url)
+        data = response.json()
+        return {
+            "cement": data.get("cement", 500),  # Default value if not found
+            "steel": data.get("steel", 60000),
+            "sand": data.get("sand", 1200),
+            "bricks": data.get("bricks", 8)
+        }
+    except Exception as e:
+        st.warning("⚠️ Failed to fetch real-time data. Using default values.")
+        return {"cement": 500, "steel": 60000, "sand": 1200, "bricks": 8}
 
 def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk, num_simulations=10000):
     """
@@ -29,6 +46,9 @@ def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, o
     
     return results_df, total_costs
 
+# Fetch real-time material costs
+real_time_prices = fetch_material_prices()
+
 def save_results(results_df):
     """ Saves the simulation results to an Excel file and provides a download link. """
     output = BytesIO()
@@ -37,16 +57,19 @@ def save_results(results_df):
     output.seek(0)
     return output
 
-def load_past_reports():
-    """ Loads past construction reports from a CSV file """
-    try:
-        return pd.read_csv("past_reports.csv")
-    except FileNotFoundError:
-        return pd.DataFrame(columns=["Project Name", "Total Cost", "Completion Time", "Major Risks"])
-
 # Streamlit UI Setup
-st.title("Construction Risk & Cost Estimator")
-st.sidebar.header("Input Parameters")
+st.set_page_config(page_title="Construction Risk & Cost Estimator", layout="wide")
+st.title("🏗️ Construction Risk & Cost Estimator")
+st.markdown("---")
+
+# Sidebar for Inputs
+st.sidebar.header("🔧 Input Parameters")
+
+st.sidebar.subheader("📌 Real-Time Material Costs")
+st.sidebar.write(f"🧱 Cement: ₹{real_time_prices['cement']} per bag")
+st.sidebar.write(f"🔩 Steel: ₹{real_time_prices['steel']} per ton")
+st.sidebar.write(f"🏖️ Sand: ₹{real_time_prices['sand']} per cubic meter")
+st.sidebar.write(f"🧱 Bricks: ₹{real_time_prices['bricks']} per unit")
 
 material_mean = st.sidebar.slider("Material Mean Cost (₹)", 50000, 500000, 100000)
 material_std = st.sidebar.slider("Material Std Dev (₹)", 5000, 50000, 10000)
@@ -57,7 +80,10 @@ other_std = st.sidebar.slider("Other Expenses Std Dev (₹)", 1000, 10000, 2000)
 inflation_rate = st.sidebar.slider("Expected Inflation Rate (%)", 0, 20, 5)
 delay_risk = st.sidebar.slider("Expected Delay Impact (%)", 0, 30, 10)
 
-if st.sidebar.button("Run Simulation"):
+st.sidebar.markdown("---")
+run_simulation = st.sidebar.button("▶️ Run Simulation")
+
+if run_simulation:
     results_df, total_costs = monte_carlo_simulation(
         material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk
     )
@@ -66,45 +92,31 @@ if st.sidebar.button("Run Simulation"):
     cost_90 = np.percentile(total_costs, 90)
     cost_99 = np.percentile(total_costs, 99)
     
-    st.write("### Simulation Results")
-    st.write(f"**Average Project Cost:** ₹{avg_cost:,.2f}")
-    st.write(f"**90% of Projects Will Cost Below:** ₹{cost_90:,.2f}")
-    st.write(f"**99% of Projects Will Cost Below:** ₹{cost_99:,.2f}")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="📊 Average Project Cost", value=f"₹{avg_cost:,.2f}")
+        st.metric(label="🔶 90% of Projects Cost Below", value=f"₹{cost_90:,.2f}")
+        st.metric(label="🔴 99% of Projects Cost Below", value=f"₹{cost_99:,.2f}")
     
-    fig, ax = plt.subplots(figsize=(10, 5))
-    sns.histplot(total_costs, bins=50, kde=True, color='blue', alpha=0.7)
-    ax.axvline(avg_cost, color='red', linestyle='dashed', label="Median Cost")
-    ax.axvline(cost_90, color='orange', linestyle='dashed', label="90% Risk Cost")
-    ax.set_xlabel("Total Project Cost (₹)")
-    ax.set_ylabel("Frequency")
-    ax.set_title("Monte Carlo Simulation for Construction Cost Estimation")
-    ax.legend()
-    st.pyplot(fig)
+    with col2:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        sns.histplot(total_costs, bins=50, kde=True, color='blue', alpha=0.7)
+        ax.axvline(avg_cost, color='red', linestyle='dashed', label="Median Cost")
+        ax.axvline(cost_90, color='orange', linestyle='dashed', label="90% Risk Cost")
+        ax.set_xlabel("Total Project Cost (₹)")
+        ax.set_ylabel("Frequency")
+        ax.set_title("Monte Carlo Simulation for Construction Cost Estimation")
+        ax.legend()
+        st.pyplot(fig)
     
-    # Sensitivity Analysis (Which cost affects the total cost the most)
+    st.markdown("---")
+    st.subheader("📌 Sensitivity Analysis")
     corr = results_df.corr()["Total Costs"].drop("Total Costs")
-    st.write("### Sensitivity Analysis")
     st.bar_chart(corr)
     
-    # Provide Downloadable File
     st.download_button(
-        label="Download Simulation Results", 
+        label="📥 Download Simulation Results", 
         data=save_results(results_df), 
         file_name="simulation_results.xlsx", 
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-# Past Construction Reports Page
-st.sidebar.header("View Past Reports")
-if st.sidebar.button("Load Past Reports"):
-    past_reports = load_past_reports()
-    st.write("### Past Construction Reports")
-    st.dataframe(past_reports)
-    
-    if st.sidebar.button("Export Past Reports"):
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            past_reports.to_excel(writer, index=False)
-        output.seek(0)
-        st.download_button("Download Past Reports", data=output, file_name="past_reports.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
