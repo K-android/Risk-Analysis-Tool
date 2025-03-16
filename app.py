@@ -15,14 +15,38 @@ def fetch_material_prices():
         response = requests.get(api_url)
         data = response.json()
         return {
-            "cement": data.get("cement", 500),  # Default value if not found
+            "cement": data.get("cement", 500),
             "steel": data.get("steel", 60000),
             "sand": data.get("sand", 1200),
             "bricks": data.get("bricks", 8)
         }
     except Exception as e:
-        st.warning("⚠️ Failed to fetch real-time data. Using default values.")
+        st.warning(⚠️ Failed to fetch real-time data. Using default values.")
         return {"cement": 500, "steel": 60000, "sand": 1200, "bricks": 8}
+
+def fetch_labor_rates():
+    api_url = "https://api.example.com/labor-costs"  # Replace with actual API
+    try:
+        response = requests.get(api_url)
+        data = response.json()
+        return data.get("average_labor_cost", 500)
+    except Exception as e:
+        st.warning("⚠️ Failed to fetch real-time labor costs. Using default values.")
+        return 500
+
+def fetch_regulatory_data():
+    api_url = "https://api.example.com/construction-regulations"  # Replace with actual API
+    try:
+        response = requests.get(api_url)
+        data = response.json()
+        return data.get("regulatory_updates", "No recent updates.")
+    except Exception as e:
+        st.warning("⚠️ Failed to fetch regulatory data.")
+        return "No recent updates."
+
+def ai_cost_estimation(material_cost, labor_cost, other_cost, inflation_rate, delay_risk):
+    risk_factor = 1 + (inflation_rate / 100) + (delay_risk / 100)
+    return (material_cost + labor_cost + other_cost) * risk_factor
 
 def monte_carlo_simulation(material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk, interest_rate, equipment_cost, overhead_cost, num_simulations=10000):
     """
@@ -94,6 +118,10 @@ if run_simulation:
     results_df, total_costs = monte_carlo_simulation(
         material_mean, material_std, labor_mean, labor_std, other_mean, other_std, inflation_rate, delay_risk, interest_rate, equipment_cost, overhead_cost
     )
+    avg_cost = np.mean(total_costs)
+    cost_90 = np.percentile(total_costs, 90)
+    cost_99 = np.percentile(total_costs, 99)
+
     
     st.subheader("📊 Cost Distribution")
     fig, ax = plt.subplots(figsize=(10, 5))
